@@ -1,0 +1,14 @@
+# Notebooks are designed for Google Colab, which preinstalls most of these.
+pandas
+pyarrow
+numpy
+scipy
+scikit-learn
+matplotlib
+torch
+transformers
+datasets
+setfit
+accelerate
+bitsandbytes
+google-genai   # optional, notebook 05 only
