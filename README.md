@@ -2,7 +2,7 @@
 
 **Question:** to label the role of each sentence in a medical research abstract, should you fine-tune a small model or prompt a general large language model? And how much labelled data does the small model really need?
 
-**Short answer:** a fine-tuned 110-million-parameter biomedical model (BiomedBERT) was the most accurate model tested (macro-F1 **0.870** on 30,135 test sentences) and about **199 times faster** than the best general LLM tested (Qwen2.5-7B-Instruct (4-bit): few shot position), which scored **0.636**, below even a simple TF-IDF baseline. With only **640 labelled sentences**, a SetFit model matched a TF-IDF model trained on 180,040. And a manual review found that about **half of the best model's "errors" were labelling errors in the benchmark itself**.
+**Short answer:** a fine-tuned 110-million-parameter biomedical model (BiomedBERT) was the most accurate model tested (macro-F1 **0.870** on 30,135 test sentences) and about **218 times faster** than the best general LLM tested (Qwen2.5-7B-Instruct (4-bit): few shot position), which scored **0.506**, below even a simple TF-IDF baseline. With only **640 labelled sentences**, a SetFit model matched a TF-IDF model trained on 180,040. And a manual review found that about **half of the best model's "errors" were labelling errors in the benchmark itself**.
 
 ## The task and data
 
@@ -20,7 +20,7 @@
 | Classic baseline | TF-IDF + logistic regression, with and without sentence position | 180,040 |
 | Few-shot fine-tuning | SetFit on a biomedical sentence-transformer (S-PubMedBert-MS-MARCO), 8 to 512 examples per class | 40 to 2,560 |
 | Full fine-tuning | BiomedBERT (110M parameters), with and without class weights | 180,040 |
-| General LLM | Qwen2.5-7B-Instruct and Qwen2.5-14B-Instruct, zero-shot and few-shot in 4-bit, run locally | 0 or 10 examples in the prompt |
+| General LLM | Qwen2.5-7B-Instruct, zero-shot and few-shot in 4-bit, run locally | 0 or 10 examples in the prompt |
 
 "Position" means the sentence's place in its abstract (for example "[3 of 9]"), given to every model that uses it in the same way.
 
@@ -36,10 +36,9 @@ All scores on the same 1,000 balanced test sentences, with 95% bootstrap confide
 | TF-IDF + position | 180,040 | 0.806 | 0.783 to 0.831 | 0.833 | 0.695 | 0 |  |
 | SetFit 512/class | 2,560 | 0.767 | 0.740 to 0.791 | 0.764 | 0.672 | 0 | 3.4 |
 | TF-IDF (text) | 180,040 | 0.746 | 0.719 to 0.773 | 0.763 | 0.669 | 0 |  |
-| Qwen2.5-7B-Instruct (4-bit): few shot position | 10 | 0.636 | 0.604 to 0.664 |  | 0.548 | 26 | 380.0 |
-| Qwen2.5-14B-Instruct (4-bit): few shot position | 10 | 0.578 | 0.548 to 0.608 |  | 0.584 | 4 | 852.0 |
-| Qwen2.5-7B-Instruct (4-bit): zero shot position | 0 | 0.535 | 0.501 to 0.565 |  | 0.524 | 77 | 299.0 |
-| Qwen2.5-7B-Instruct (4-bit): zero shot | 0 | 0.483 | 0.452 to 0.514 |  | 0.514 | 86 | 302.0 |
+| Qwen2.5-7B-Instruct (4-bit): few shot position | 10 | 0.506 | 0.477 to 0.537 |  | 0.453 | 39 | 418.0 |
+| Qwen2.5-7B-Instruct (4-bit): zero shot | 0 | 0.283 | 0.255 to 0.311 |  | 0.401 | 48 | 302.0 |
+| Qwen2.5-7B-Instruct (4-bit): zero shot position | 0 | 0.281 | 0.252 to 0.309 |  | 0.341 | 143 | 299.0 |
 
 
 ### How much labelled data does a small model need?
@@ -63,7 +62,7 @@ All scores on the same 1,000 balanced test sentences, with 95% bootstrap confide
 
 1. **Fine-tuning a small domain model wins.** BiomedBERT fine-tuned + position + class weights reached macro-F1 **0.852** on the balanced set and **0.870** on the full test set, at **1.9 ms per sentence**. It was significantly better than the best baseline (exact McNemar test, p = 8e-6).
 2. **Labels are expensive; you need far fewer than you might think.** SetFit with **128 examples per class (640 sentences)** scored **0.748**, the same as TF-IDF trained on **180,040** sentences (0.746). Gains flatten quickly after that.
-3. **General LLMs are not competitive here.** The best LLM setting (Qwen2.5-7B-Instruct (4-bit): few shot position) scored **0.636**, below the simplest trained baseline, ran at **380 ms per sentence**, and returned **26** unusable answers out of 1,000 (wrong number of labels or invalid labels). Examples in the prompt helped it far more than position did.
+3. **General LLMs are not competitive here.** The best LLM setting (Qwen2.5-7B-Instruct (4-bit): few shot position) scored **0.506**, below the simplest trained baseline, ran at **418 ms per sentence**, and returned **39** unusable answers out of 1,000 (wrong number of labels or invalid labels). Examples in the prompt helped it far more than position did.
 4. **Class weights fix part of the rare-class problem, at no overall cost.** Square-root inverse-frequency weights raised OBJECTIVE F1 from **0.669** to **0.703**. The overall difference was not significant (p = 0.36), so this is a targeted improvement, not a better model overall. Interestingly, SetFit trained on balanced classes still had the best OBJECTIVE F1 (0.723).
 5. **The benchmark's labels are a ceiling.** I reviewed 30 randomly sampled sentences where the best unweighted model disagreed with the gold label:
 
@@ -86,14 +85,14 @@ Exact McNemar tests, paired on the same 1,000 sentences, comparing the best mode
 - vs **SetFit 512/class**: best right and other wrong on 133 sentences, the reverse on 44; p = 1e-11
 - vs **TF-IDF (text)**: best right and other wrong on 137 sentences, the reverse on 31; p = 4e-17
 - vs **Qwen2.5-7B-Instruct (4-bit): few shot position**: best right and other wrong on 269 sentences, the reverse on 43; p = 4e-41
-- vs **Qwen2.5-7B-Instruct (4-bit): zero shot position**: best right and other wrong on 377 sentences, the reverse on 42; p = 2e-68
 - vs **Qwen2.5-7B-Instruct (4-bit): zero shot**: best right and other wrong on 423 sentences, the reverse on 37; p = 4e-84
+- vs **Qwen2.5-7B-Instruct (4-bit): zero shot position**: best right and other wrong on 377 sentences, the reverse on 42; p = 2e-68
 
 
 ## Limitations
 
-- **No frontier LLM result.** A Gemini comparison is included as notebook 05, but it could not be completed on the free API tier because of quota and availability limits. The LLMs tested here are open models (7B and 14B) in 4-bit, so the result shows the gap for general models of that size, not for the largest commercial models. Doubling the LLM from 7B to 14B parameters changed its best macro-F1 from 0.636 to 0.578, still well below the fine-tuned models.
-- **LLM prompting was not tuned.** The LLM classified 20 sentences per prompt for efficiency, which is harder than one at a time, and invalid outputs were counted as wrong.
+- **No frontier LLM result.** A Gemini comparison is included as notebook 05, but it could not be completed on the free API tier because of quota and availability limits. The LLMs tested here are open models (7B) in 4-bit, so the result shows the gap for general models of that size, not for the largest commercial models.
+- **LLM prompting was not tuned.** The LLMs classified 20 sentences per prompt, in a fixed random order, for efficiency. That is harder than one at a time, and invalid outputs were counted as wrong. An earlier version sent sentences grouped by their gold label, so every prompt held 20 sentences with the same answer; that unfairly lowered the LLM scores and was corrected by shuffling before batching.
 - **Single runs.** Fine-tuning ran once per setting; GPU training is not fully deterministic, and small run-to-run differences (around 0.003 macro-F1) were observed.
 - **One dataset, one task.** Conclusions may not transfer to other text types or label schemes.
 
